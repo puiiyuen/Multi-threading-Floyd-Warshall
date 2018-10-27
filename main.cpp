@@ -112,7 +112,7 @@ void initialMatrix(args *&argument)
         }
         else if(graph[j][k]!=INF && j!=k)
         {
-            cout<<"The weight of edge between "<<j<<" and "<<k<<" exists"<<endl;
+            cout<<"The weight of edge between "<<j+1<<" and "<<k+1<<" exists"<<endl;
             cout<<"Input again"<<endl;
             i--;
         }
@@ -203,7 +203,7 @@ void shortestPath(args *argument)
 
     for(int k=0;k<numOfVex;k++)
     {
-        gettimeofday(&startTime,0);
+
 
         for(int i=0;i<numOfVex;i++)
         {
@@ -211,6 +211,8 @@ void shortestPath(args *argument)
             argument[i].i=i;
             pthread_create(threads+i,NULL,worker,(void *)&(argument[i]));
         }
+
+        gettimeofday(&startTime,0);
 
         for(int i=0;i<numOfVex;i++)
         {
