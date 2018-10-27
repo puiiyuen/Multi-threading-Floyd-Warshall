@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <semaphore.h>
 
 #define INF 99999
 
@@ -18,6 +19,10 @@ typedef struct {
 
 int **dist;
 int **graph;
+
+//sem_t sem_distLock;
+
+pthread_mutex_t distLock;
 
 bool checkNumber(int num)
 {
@@ -106,8 +111,8 @@ void initialMatrix(args *&argument)
         {
             graph[j][k]=edge;
             graph[k][j]=edge;
-            dist[i][k]=edge;
-            dist[i][k]=edge;
+            dist[j][k]=edge;
+            dist[k][j]=edge;
         }
     }
 }
@@ -138,18 +143,33 @@ void *worker(void *arg)
     for(int j=0;j<n;j++)
     {
         //acquire read lock
+        pthread_mutex_lock(&distLock);
         if((dist[i][k]+dist[k][j])<dist[i][j])
         {
-            //release read lock
-            //acquire write lock
+
             dist[i][j]=dist[i][k]+dist[k][j];
             //release write lock
+            pthread_mutex_unlock(&distLock);
+
+        }
+        else
+        {
+            //release read lock
+            pthread_mutex_unlock(&distLock);
         }
     }
+
+    pthread_exit(NULL);
 }
 
 void shortestPath(args *argument)
 {
+
+//    sem_init(&sem_distLock,0,1);
+
+
+    pthread_mutex_init(&distLock,NULL);
+
     int numOfVex=argument[0].n;
     pthread_t *threads=(pthread_t *)malloc(numOfVex * sizeof(pthread_t *));
     for(int k=0;k<numOfVex;k++)
