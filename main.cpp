@@ -6,8 +6,10 @@
 #include <iostream>
 #include <sstream>
 #include <semaphore.h>
+#include <sys/time.h>
 
 #define INF 99999
+#define NONUM "-1"
 
 using namespace std;
 
@@ -16,6 +18,7 @@ typedef struct {
     int i;
     int k;
 }args;
+
 
 int **dist;
 int **graph;
@@ -51,10 +54,13 @@ void initialMatrix(args *&argument)
         cout<<"How many vertices and edges do you have:";
         getline(cin,input);
         istringstream content(input);
+        temp=NONUM;
         getline(content,temp,' ');
         numOfVertex=atoi(temp.c_str());
+        temp=NONUM;
         getline(content,temp,' ');
         numOfEdge=atoi(temp.c_str());
+        temp=NONUM;
         if(!checkMatrix(numOfVertex,numOfEdge))
             cout<<"There is/are negetive number(s),or the number of edge exceed the maximum number"<<endl;
     }while (!checkMatrix(numOfVertex,numOfEdge));
@@ -89,10 +95,13 @@ void initialMatrix(args *&argument)
         int j,k,edge;
         getline(cin,input);
         istringstream content(input);
+        temp=NONUM;
         getline(content,temp,' ');
         j=atoi(temp.c_str())-1;
+        temp=NONUM;
         getline(content,temp,' ');
         k=atoi(temp.c_str())-1;
+        temp=NONUM;
         getline(content,temp,' ');
         edge=atoi(temp.c_str());
         if(!(checkNumber(j+1)&&checkNumber(k+1)&&checkNumber(edge))||j>=numOfVertex||k>=numOfVertex)
@@ -103,7 +112,7 @@ void initialMatrix(args *&argument)
         }
         else if(graph[j][k]!=INF && j!=k)
         {
-            cout<<"The weight of edge between "<<j<<" and "<<k<<"exists"<<endl;
+            cout<<"The weight of edge between "<<j<<" and "<<k<<" exists"<<endl;
             cout<<"Input again"<<endl;
             i--;
         }
@@ -119,16 +128,26 @@ void initialMatrix(args *&argument)
 
 void displayMatrix(args *argument)
 {
-    for(int i=0;i<argument[0].n;i++)
+    int n=argument[0].n;
+    if(n>50)
     {
-        for(int j=0;j<argument[0].n;j++)
+        cout<<"There are "<< n <<" vertices"<<endl;
+        cout<<"The matrix is too large to display"<<endl;
+    }
+    else
+    {
+        cout<<"The shortest path of original matrix is"<<endl;
+        for(int i=0;i<n;i++)
         {
-            if(dist[i][j]==INF)
-                cout<<"INF ";
-            else
-                cout<<dist[i][j]<<" ";
+            for(int j=0;j<n;j++)
+            {
+                if(dist[i][j]==INF)
+                    cout<<"INF ";
+                else
+                    cout<<dist[i][j]<<" ";
+            }
+            cout<<endl;
         }
-        cout<<endl;
     }
 }
 
@@ -140,17 +159,20 @@ void *worker(void *arg)
     int i=argument->i;
     int k=argument->k;
 
+
     for(int j=0;j<n;j++)
     {
         //acquire read lock
         pthread_mutex_lock(&distLock);
         if((dist[i][k]+dist[k][j])<dist[i][j])
         {
-
+            //release write lock
+            pthread_mutex_unlock(&distLock);
+            //acquire write lock
+            pthread_mutex_lock(&distLock);
             dist[i][j]=dist[i][k]+dist[k][j];
             //release write lock
             pthread_mutex_unlock(&distLock);
-
         }
         else
         {
@@ -158,6 +180,8 @@ void *worker(void *arg)
             pthread_mutex_unlock(&distLock);
         }
     }
+
+
 
     pthread_exit(NULL);
 }
@@ -167,13 +191,20 @@ void shortestPath(args *argument)
 
 //    sem_init(&sem_distLock,0,1);
 
-
     pthread_mutex_init(&distLock,NULL);
 
+    double totalTime=0.0;
+
+    timeval startTime,endTime;
+
     int numOfVex=argument[0].n;
+
     pthread_t *threads=(pthread_t *)malloc(numOfVex * sizeof(pthread_t *));
+
     for(int k=0;k<numOfVex;k++)
     {
+        gettimeofday(&startTime,0);
+
         for(int i=0;i<numOfVex;i++)
         {
             argument[i].k=k;
@@ -185,13 +216,22 @@ void shortestPath(args *argument)
         {
             pthread_join(*(threads+i),NULL);
         }
+
+        gettimeofday(&endTime,0);
+
+        double timeuse =1000000*(endTime.tv_sec - startTime.tv_sec)+ endTime.tv_usec - startTime.tv_usec;
+        timeuse/=1000000;
+        totalTime+=timeuse;
+        printf("Finished running %d time(s) in %f s\n",k+1,timeuse);
     }
+    printf("Finished running in %f s\n\n",totalTime);
 }
 
 int main()
 {
 
     args *argument;
+
     initialMatrix(argument);
 
     shortestPath(argument);
