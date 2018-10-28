@@ -171,7 +171,7 @@ void initialMatrix(args *&argument)
  *
  */
 
-void displayMatrix(args *argument)
+void displayMatrix(args *argument,int dg)
 {
     int n=argument[0].n;
     if(n>50)
@@ -179,9 +179,9 @@ void displayMatrix(args *argument)
         cout<<"There are "<< n <<" vertices"<<endl;
         cout<<"The matrix is too large to display"<<endl;
     }
-    else
+    else if (dg==0)
     {
-        cout<<"The shortest path of original matrix is"<<endl;
+        cout<<"The shortest path of original matrix is(multi-threading)"<<endl;
         for(int i=0;i<n;i++)
         {
             for(int j=0;j<n;j++)
@@ -194,10 +194,26 @@ void displayMatrix(args *argument)
             cout<<endl;
         }
     }
+    else
+    {
+        cout<<"The shortest path of original matrix is(single-threading)"<<endl;
+        for(int i=0;i<n;i++)
+        {
+            for(int j=0;j<n;j++)
+            {
+                if(graph[i][j]==INF)
+                    cout<<"INF ";
+                else
+                    cout<<graph[i][j]<<" ";
+            }
+            cout<<endl;
+        }
+    }
 }
 
 /*
  *
+ * multi-threading worker
  * function: run the j part of FW algothrim
  * param: arg: store n, k, i
  *
@@ -240,6 +256,32 @@ void *worker(void *arg)
 
 /*
  *
+ * single-threading worker
+ * function: run FW algorithm in single-threading
+ *
+ */
+
+void *workerST(void *arg)
+{
+    args *argument=(args *)arg;
+    int n=argument[0].n;
+
+    for(int k=0;k<n;k++)
+    {
+        for(int i=0;i<n;i++)
+        {
+            for(int j=0;j<n;j++)
+            {
+                if((graph[i][k]+graph[k][j])<graph[i][j])
+                    graph[i][j]=graph[i][k]+graph[k][j];
+            }
+        }
+    }
+    pthread_exit(NULL);
+}
+
+/*
+ *
  * function: driver to create threads and join threads
  *           calculate the time of each j iteration
  * param: argument: store n, k, i
@@ -258,6 +300,8 @@ void shortestPath(args *argument)
     timeval startTime,endTime;
 
     int numOfVex=argument[0].n;
+
+    printf("----Multi-threading----\n");
 
     pthread_t *threads=(pthread_t *)malloc(numOfVex * sizeof(pthread_t *));
 
@@ -290,6 +334,25 @@ void shortestPath(args *argument)
     }
     //print out the total time
     printf("Finished running in %f s\n\n",totalTime);
+
+    //single-threading
+    printf("----Single-threading----\n");
+
+    pthread_t tid[1];
+
+    pthread_create(&tid[0],NULL,workerST,(void *)&(argument[0]));
+
+    gettimeofday(&startTime,0);
+
+    pthread_join(tid[0],NULL);
+
+    gettimeofday(&endTime,0);
+
+    double timeuse =1000000*(endTime.tv_sec - startTime.tv_sec)+ endTime.tv_usec - startTime.tv_usec;
+    timeuse/=1000000;
+
+    printf("Finished running in %f s\n\n",timeuse);
+    //end of single-threading
 }
 
 /*
@@ -307,7 +370,9 @@ int main()
 
     shortestPath(argument);
 
-    displayMatrix(argument);
+    displayMatrix(argument,0);
+
+    displayMatrix(argument,1);
 
     return 0;
 }
