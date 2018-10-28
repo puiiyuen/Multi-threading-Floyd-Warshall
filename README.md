@@ -1,5 +1,5 @@
 # Multi-threading-Floyd-Warshall
-Multithreading Floyd-Warshall All Pairs Shortest Path with C/C++
+Multi-threading Floyd-Warshall All Pairs Shortest Path with C/C++
 # Introduction
 1. A shortest path of matrix program (FW algorithm) includes multi-threading and single-threading function
 2. Default number of threads is the number of vertices you input
